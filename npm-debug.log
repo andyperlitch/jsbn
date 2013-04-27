@@ -1,0 +1,42 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'publish', 'jsbn' ]
+2 info using npm@1.1.71
+3 info using node@v0.8.17
+4 verbose publish [ 'jsbn' ]
+5 verbose read json /Users/andyperlitch/node_modules/jsbn/jsbn/package.json
+6 verbose cache add [ 'jsbn', null ]
+7 silly cache add name=undefined spec="jsbn" args=["jsbn",null]
+8 verbose parsed url { pathname: 'jsbn', path: 'jsbn', href: 'jsbn' }
+9 silly lockFile 014bcb03-jsbn jsbn
+10 verbose lock jsbn /Users/andyperlitch/.npm/014bcb03-jsbn.lock
+11 silly lockFile 014bcb03-jsbn jsbn
+12 verbose addNamed [ 'jsbn', '' ]
+13 verbose addNamed [ null, '' ]
+14 silly lockFile 89b17b8e-jsbn jsbn@
+15 verbose lock jsbn@ /Users/andyperlitch/.npm/89b17b8e-jsbn.lock
+16 silly addNameRange { name: 'jsbn', range: '', hasData: false }
+17 verbose url raw jsbn
+18 verbose url resolving [ 'https://registry.npmjs.org/', './jsbn' ]
+19 verbose url resolved https://registry.npmjs.org/jsbn
+20 info trying registry request attempt 1 at 00:42:55
+21 http GET https://registry.npmjs.org/jsbn
+22 http 404 https://registry.npmjs.org/jsbn
+23 silly registry.get cb [ 404,
+23 silly registry.get   { server: 'CouchDB/1.3.0 (Erlang OTP/R15B03)',
+23 silly registry.get     date: 'Sat, 27 Apr 2013 07:42:56 GMT',
+23 silly registry.get     'content-type': 'application/json',
+23 silly registry.get     'content-length': '52',
+23 silly registry.get     'cache-control': 'must-revalidate' } ]
+24 silly lockFile 89b17b8e-jsbn jsbn@
+25 error 404 'jsbn' is not in the npm registry.
+25 error 404 You should bug the author to publish it
+25 error 404
+25 error 404 Note that you can also install from a
+25 error 404 tarball, folder, or http url, or git url.
+26 error System Darwin 12.2.0
+27 error command "node" "/usr/local/bin/npm" "publish" "jsbn"
+28 error cwd /Users/andyperlitch/node_modules/jsbn
+29 error node -v v0.8.17
+30 error npm -v 1.1.71
+31 error code E404
+32 verbose exit [ 1, true ]
