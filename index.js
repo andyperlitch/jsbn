@@ -1,5 +1,5 @@
 (function(){
-    
+
     // Copyright (c) 2005  Tom Wu
     // All Rights Reserved.
     // See "LICENSE" for details.
@@ -1209,6 +1209,9 @@
     // JSBN-specific extension
     BigInteger.prototype.square = bnSquare;
 
+    // Expose the Barrett function
+    BigInteger.prototype.Barrett = Barrett
+
     // BigInteger interfaces not implemented in jsbn:
 
     // BigInteger(int signum, byte[] magnitude)
@@ -1222,5 +1225,5 @@
     } else {
         this.BigInteger = BigInteger;
     }
-    
+
 }).call(this);
