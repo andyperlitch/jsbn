@@ -1,6 +1,6 @@
 {
   "name": "jsbn",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "The jsbn library is a fast, portable implementation of large-number math in pure JavaScript, enabling public-key crypto and other applications on desktop and mobile browsers.",
   "main": "index.js",
   "scripts": {
