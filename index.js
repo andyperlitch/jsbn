@@ -1347,6 +1347,7 @@
 
     if (typeof exports !== 'undefined') {
         exports = module.exports = {
+            default: BigInteger,
             BigInteger: BigInteger,
             SecureRandom: SecureRandom,
         };
