@@ -1266,7 +1266,6 @@
             rng_pool[rng_pptr++] = z.charCodeAt(t) & 255;
         }
       }
-      }
       while(rng_pptr < rng_psize) {  // extract some randomness from Math.random()
         t = Math.floor(65536 * Math.random());
         rng_pool[rng_pptr++] = t >>> 8;
