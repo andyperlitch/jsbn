@@ -21,6 +21,101 @@
         else this.fromString(a,b);
     }
 
+    BigInteger.prototype = {
+        // protected
+        copyTo : bnpCopyTo,
+        fromInt : bnpFromInt,
+        fromString : bnpFromString,
+        clamp : bnpClamp,
+        dlShiftTo : bnpDLShiftTo,
+        drShiftTo : bnpDRShiftTo,
+        lShiftTo : bnpLShiftTo,
+        rShiftTo : bnpRShiftTo,
+        subTo : bnpSubTo,
+        multiplyTo : bnpMultiplyTo,
+        squareTo : bnpSquareTo,
+        divRemTo : bnpDivRemTo,
+        invDigit : bnpInvDigit,
+        isEven : bnpIsEven,
+        exp : bnpExp,
+
+        // public
+        toString : bnToString,
+        negate : bnNegate,
+        abs : bnAbs,
+        compareTo : bnCompareTo,
+        bitLength : bnBitLength,
+        mod : bnMod,
+        modPowInt : bnModPowInt,
+        
+        // Extended
+
+        // protected
+        chunkSize : bnpChunkSize,
+        toRadix : bnpToRadix,
+        fromRadix : bnpFromRadix,
+        fromNumber : bnpFromNumber,
+        bitwiseTo : bnpBitwiseTo,
+        changeBit : bnpChangeBit,
+        addTo : bnpAddTo,
+        dMultiply : bnpDMultiply,
+        dAddOffset : bnpDAddOffset,
+        multiplyLowerTo : bnpMultiplyLowerTo,
+        multiplyUpperTo : bnpMultiplyUpperTo,
+        modInt : bnpModInt,
+        millerRabin : bnpMillerRabin,
+
+        // public
+        clone : bnClone,
+        intValue : bnIntValue,
+        byteValue : bnByteValue,
+        shortValue : bnShortValue,
+        signum : bnSigNum,
+        toByteArray : bnToByteArray,
+        equals : bnEquals,
+        min : bnMin,
+        max : bnMax,
+        and : bnAnd,
+        or : bnOr,
+        xor : bnXor,
+        andNot : bnAndNot,
+        not : bnNot,
+        shiftLeft : bnShiftLeft,
+        shiftRight : bnShiftRight,
+        getLowestSetBit : bnGetLowestSetBit,
+        bitCount : bnBitCount,
+        testBit : bnTestBit,
+        setBit : bnSetBit,
+        clearBit : bnClearBit,
+        flipBit : bnFlipBit,
+        add : bnAdd,
+        subtract : bnSubtract,
+        multiply : bnMultiply,
+        divide : bnDivide,
+        remainder : bnRemainder,
+        divideAndRemainder : bnDivideAndRemainder,
+        modPow : bnModPow,
+        modInverse : bnModInverse,
+        pow : bnPow,
+        gcd : bnGCD,
+        isProbablePrime : bnIsProbablePrime,
+
+        // JSBN-specific extension
+        square : bnSquare,
+
+        // Expose the Barrett function
+        Barrett : Barrett,
+
+        // BigInteger interfaces not implemented in jsbn:
+
+        // BigInteger(int signum, byte[] magnitude)
+        // double doubleValue()
+        // float floatValue()
+        // int hashCode()
+        // long longValue()
+        // static BigInteger valueOf(long val)
+    };
+
     // return new, unset BigInteger
     function nbi() { return new BigInteger(null); }
 
@@ -530,32 +625,6 @@
       if(e < 256 || m.isEven()) z = new Classic(m); else z = new Montgomery(m);
       return this.exp(e,z);
     }
-
-    // protected
-    BigInteger.prototype.copyTo = bnpCopyTo;
-    BigInteger.prototype.fromInt = bnpFromInt;
-    BigInteger.prototype.fromString = bnpFromString;
-    BigInteger.prototype.clamp = bnpClamp;
-    BigInteger.prototype.dlShiftTo = bnpDLShiftTo;
-    BigInteger.prototype.drShiftTo = bnpDRShiftTo;
-    BigInteger.prototype.lShiftTo = bnpLShiftTo;
-    BigInteger.prototype.rShiftTo = bnpRShiftTo;
-    BigInteger.prototype.subTo = bnpSubTo;
-    BigInteger.prototype.multiplyTo = bnpMultiplyTo;
-    BigInteger.prototype.squareTo = bnpSquareTo;
-    BigInteger.prototype.divRemTo = bnpDivRemTo;
-    BigInteger.prototype.invDigit = bnpInvDigit;
-    BigInteger.prototype.isEven = bnpIsEven;
-    BigInteger.prototype.exp = bnpExp;
-
-    // public
-    BigInteger.prototype.toString = bnToString;
-    BigInteger.prototype.negate = bnNegate;
-    BigInteger.prototype.abs = bnAbs;
-    BigInteger.prototype.compareTo = bnCompareTo;
-    BigInteger.prototype.bitLength = bnBitLength;
-    BigInteger.prototype.mod = bnMod;
-    BigInteger.prototype.modPowInt = bnModPowInt;
 
     // "constants"
     BigInteger.ZERO = nbv(0);
@@ -1155,77 +1224,6 @@
       }
       return true;
     }
-
-    // protected
-    BigInteger.prototype.chunkSize = bnpChunkSize;
-    BigInteger.prototype.toRadix = bnpToRadix;
-    BigInteger.prototype.fromRadix = bnpFromRadix;
-    BigInteger.prototype.fromNumber = bnpFromNumber;
-    BigInteger.prototype.bitwiseTo = bnpBitwiseTo;
-    BigInteger.prototype.changeBit = bnpChangeBit;
-    BigInteger.prototype.addTo = bnpAddTo;
-    BigInteger.prototype.dMultiply = bnpDMultiply;
-    BigInteger.prototype.dAddOffset = bnpDAddOffset;
-    BigInteger.prototype.multiplyLowerTo = bnpMultiplyLowerTo;
-    BigInteger.prototype.multiplyUpperTo = bnpMultiplyUpperTo;
-    BigInteger.prototype.modInt = bnpModInt;
-    BigInteger.prototype.millerRabin = bnpMillerRabin;
-
-    // public
-    BigInteger.prototype.clone = bnClone;
-    BigInteger.prototype.intValue = bnIntValue;
-    BigInteger.prototype.byteValue = bnByteValue;
-    BigInteger.prototype.shortValue = bnShortValue;
-    BigInteger.prototype.signum = bnSigNum;
-    BigInteger.prototype.toByteArray = bnToByteArray;
-    BigInteger.prototype.equals = bnEquals;
-    BigInteger.prototype.min = bnMin;
-    BigInteger.prototype.max = bnMax;
-    BigInteger.prototype.and = bnAnd;
-    BigInteger.prototype.or = bnOr;
-    BigInteger.prototype.xor = bnXor;
-    BigInteger.prototype.andNot = bnAndNot;
-    BigInteger.prototype.not = bnNot;
-    BigInteger.prototype.shiftLeft = bnShiftLeft;
-    BigInteger.prototype.shiftRight = bnShiftRight;
-    BigInteger.prototype.getLowestSetBit = bnGetLowestSetBit;
-    BigInteger.prototype.bitCount = bnBitCount;
-    BigInteger.prototype.testBit = bnTestBit;
-    BigInteger.prototype.setBit = bnSetBit;
-    BigInteger.prototype.clearBit = bnClearBit;
-    BigInteger.prototype.flipBit = bnFlipBit;
-    BigInteger.prototype.add = bnAdd;
-    BigInteger.prototype.subtract = bnSubtract;
-    BigInteger.prototype.multiply = bnMultiply;
-    BigInteger.prototype.divide = bnDivide;
-    BigInteger.prototype.remainder = bnRemainder;
-    BigInteger.prototype.divideAndRemainder = bnDivideAndRemainder;
-    BigInteger.prototype.modPow = bnModPow;
-    BigInteger.prototype.modInverse = bnModInverse;
-    BigInteger.prototype.pow = bnPow;
-    BigInteger.prototype.gcd = bnGCD;
-    BigInteger.prototype.isProbablePrime = bnIsProbablePrime;
-
-    // JSBN-specific extension
-    BigInteger.prototype.square = bnSquare;
-
-    // Expose the Barrett function
-    BigInteger.prototype.Barrett = Barrett
-
-    // BigInteger interfaces not implemented in jsbn:
-
-    // BigInteger(int signum, byte[] magnitude)
-    // double doubleValue()
-    // float floatValue()
-    // int hashCode()
-    // long longValue()
-    // static BigInteger valueOf(long val)
-
-    // Random number generator - requires a PRNG backend, e.g. prng4.js
-
-    // For best results, put code like
-    // <body onClick='rng_seed_time();' onKeyPress='rng_seed_time();'>
-    // in your main HTML document.
 
     var rng_state;
     var rng_pool;
