@@ -4,7 +4,8 @@
   "description": "The jsbn library is a fast, portable implementation of large-number math in pure JavaScript, enabling public-key crypto and other applications on desktop and mobile browsers.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test.js"
+    "test": "jest index.test.js",
+    "ts": "tsc ."
   },
   "repository": {
     "type": "git",
@@ -18,5 +19,10 @@
     "integer"
   ],
   "author": "Tom Wu",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.24",
+    "jest": "^24.9.0",
+    "typescript": "^3.7.4"
+  }
 }
