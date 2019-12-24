@@ -130,6 +130,29 @@
 
     // (protected) set from string and radix
     function bnpFromString(s,b) {
+      // Auto-detect string notations
+      if (!b && s.length >= 2 && s[0] === '0') {
+        var isDetected = true;
+        switch (s[1]) {
+          case 'x': // Hexadecimal notation
+            b = 16;
+            break;
+          case 'b': // Binary notation
+            b = 2;
+            break;
+          case 'o': // Octal notation
+            b = 8;
+            break;
+          default:
+            isDetected = false;
+        }
+
+        // Remove the notation string if any has been detected
+        if (isDetected) {
+          s = s.substr(2);
+        }
+      }
+
       var k;
       if(b == 16) k = 4;
       else if(b == 8) k = 3;
