@@ -1273,11 +1273,12 @@
       rng_pool = new Array();
       rng_pptr = 0;
       var t;
-      if(typeof window !== "undefined" && window.crypto) {
-        if (window.crypto.getRandomValues) {
+      if(typeof window !== "undefined") {
+        var crypto = window.crypto || window.msCrypto;
+        if (crypto.getRandomValues) {
           // Use webcrypto if available
           var ua = new Uint8Array(32);
-          window.crypto.getRandomValues(ua);
+          crypto.getRandomValues(ua);
           for(t = 0; t < 32; ++t)
             rng_pool[rng_pptr++] = ua[t];
         }
