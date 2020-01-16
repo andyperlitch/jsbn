@@ -4,6 +4,8 @@
   "description": "The jsbn library is a fast, portable implementation of large-number math in pure JavaScript, enabling public-key crypto and other applications on desktop and mobile browsers.",
   "main": "index.js",
   "scripts": {
+    "format:check": "prettier --config ./.prettierrc.js --check \"**/*.js\"",
+    "format:fix": "prettier --config ./.prettierrc.js --write \"**/*.js\"",
     "test": "mocha test.js"
   },
   "repository": {
@@ -18,5 +20,9 @@
     "integer"
   ],
   "author": "Tom Wu",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "benchmark": "^2.1.4",
+    "prettier": "^1.19.1"
+  }
 }
