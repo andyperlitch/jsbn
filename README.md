@@ -12,6 +12,9 @@ var BigInteger = require('jsbn').BigInteger;
 var bi = new BigInteger('91823918239182398123');
 console.log(bi.bitLength()); // 67
 ```
+### License
+You find the license information in the License file incliuded in this project.
+For additional questions regarding licensing ask contact Tom Wu tjw@cs.Stanford.EDU
 
 ## API
 
