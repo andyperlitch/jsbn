@@ -157,7 +157,7 @@
 
       // Remove the notation string if any has been detected
       if (isDetected) {
-        s = s.substr(2);
+        s = s.slice(2);
       }
     }
 
@@ -748,7 +748,7 @@
       r = '';
     this.divRemTo(d, y, z);
     while (y.signum() > 0) {
-      r = (a + z.intValue()).toString(b).substr(1) + r;
+      r = (a + z.intValue()).toString(b).slice(1) + r;
       y.divRemTo(d, y, z);
     }
     return z.intValue().toString(b) + r;
