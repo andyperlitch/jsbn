@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: CJS require smoke test
+        run: node -e "const { BigInteger } = require('./dist/index.cjs'); if (new BigInteger('10').add(new BigInteger('32')).toString() !== '42') process.exit(1);"
+      - name: ESM import smoke test
+        run: node --input-type=module -e "import { BigInteger } from './dist/index.js'; if (new BigInteger('10').add(new BigInteger('32')).toString() !== '42') process.exit(1);"
