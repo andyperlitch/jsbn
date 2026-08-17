@@ -1,0 +1,349 @@
+:root {
+  --bg: #f3eee4;
+  --bg-2: #ebe4d6;
+  --ink: #1a1612;
+  --muted: #6b6258;
+  --line: #cfc4b2;
+  --accent: #8c2f0d;
+  --ok: #1f4d32;
+  --err: #8c2f0d;
+  --font: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.45;
+}
+
+a {
+  color: var(--accent);
+}
+
+.mast,
+main,
+footer {
+  width: min(1080px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.mast {
+  padding: 2.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0.35rem 0 0.75rem;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.lede {
+  max-width: 42rem;
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+}
+
+.tabs {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.tabs button {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.4rem 0;
+  font: inherit;
+  font-size: 1.15rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.panel {
+  padding: 1.75rem 0 3rem;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+textarea,
+input,
+select,
+button {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  color: var(--ink);
+  padding: 0.55rem 0.65rem;
+  border-radius: 2px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+fieldset {
+  border: 1px solid var(--line);
+  padding: 0.75rem;
+  margin: 0;
+}
+
+legend {
+  padding: 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ops button,
+#bench-run {
+  appearance: none;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
+.ops button:hover,
+#bench-run:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.result-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 1.1rem 1.2rem;
+  min-height: 16rem;
+}
+
+.result-label {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.result-body {
+  margin: 0.7rem 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+
+.result-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.result-error {
+  color: var(--err);
+  margin: 0.5rem 0 0;
+}
+
+.bench-copy {
+  max-width: 46rem;
+  color: var(--muted);
+}
+
+.bench-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+.bench-controls label {
+  min-width: 10rem;
+}
+
+#bench-run:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.bench-status {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ok);
+  min-height: 1.4em;
+}
+
+.bench-grid {
+  display: grid;
+  grid-template-columns: 7.5rem 9.5rem minmax(12rem, 1fr);
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  align-items: center;
+}
+
+.bench-grid > .bench-h {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--ink);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bench-grid > .op {
+  grid-column: 1;
+  grid-row: span 4;
+  align-self: start;
+  padding: 0.55rem 0.5rem 0.4rem;
+  font-weight: 600;
+}
+
+.bench-grid > .lib {
+  grid-column: 2;
+  padding: 0.4rem 0.5rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bench-grid > .metric {
+  grid-column: 3;
+  padding: 0.4rem 0.5rem;
+  min-width: 0;
+}
+
+.bench-grid > .lib:not(.op-end),
+.bench-grid > .metric:not(.op-end) {
+  border-bottom: 1px solid var(--bg-2);
+}
+
+.bench-grid > .op {
+  border-top: 1px solid var(--line);
+}
+
+.bench-grid > .bench-h:nth-child(3) + .op {
+  border-top: 0;
+}
+
+.bench-grid > .metric.op-end + .op + .lib,
+.bench-grid > .metric.op-end + .op + .lib + .metric {
+  border-top: 1px solid var(--line);
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.metric-row .time {
+  flex: 0 0 6.25rem;
+  text-align: right;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.bar-track {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  background: var(--bg-2);
+}
+
+.bar-track .bar {
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.bench-grid > .lib.fast {
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.bench-grid .fast .time {
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.bench-grid .fast .bar {
+  background: var(--ok);
+}
+
+.bench-grid .fail .time {
+  color: var(--err);
+  font-weight: 700;
+}
+
+.bench-grid .na .time {
+  color: var(--muted);
+}
+
+footer {
+  padding: 0 0 2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 800px) {
+  .demo-grid,
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

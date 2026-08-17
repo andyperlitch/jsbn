@@ -47,6 +47,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "pages:build": "npm run build && cp dist/index.js docs/jsbn.js",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
     "prepublishOnly": "npm run build && npm test",

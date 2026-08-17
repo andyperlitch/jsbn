@@ -46,9 +46,17 @@ describe('constructor', () => {
     expect(roundTrip.equals(original)).toBe(true);
   });
 
+  it('materializes digits after a native-BigInt add', () => {
+    const sum = bi('91823918239182398123').add(bi('1'));
+    const roundTrip = new NamedBigInteger(sum.toByteArray());
+    expect(roundTrip.toString()).toBe('91823918239182398124');
+  });
+
   it('parses zero', () => {
     expect(new NamedBigInteger('0', 10).toString()).toBe('0');
     expect(new NamedBigInteger('0').signum()).toBe(0);
+    expect(new NamedBigInteger('007').toString()).toBe('7');
+    expect(new NamedBigInteger('-0').toString()).toBe('0');
   });
 });
 
@@ -102,6 +110,12 @@ describe('sign and comparison', () => {
 describe('bit operations', () => {
   it('bitLength matches the README example', () => {
     expect(bi('91823918239182398123').bitLength()).toBe(67);
+  });
+
+  it('bitLength of negatives matches two’s-complement jsbn', () => {
+    expect(bi('-1').bitLength()).toBe(0);
+    expect(bi('-2').bitLength()).toBe(1);
+    expect(bi('-8').bitLength()).toBe(3);
   });
 
   it('shiftLeft / shiftRight', () => {
@@ -185,6 +199,25 @@ describe('modular arithmetic', () => {
     expect(bi('17').mod(bi('5')).toString()).toBe('2');
     expect(bi('3').modPow(bi('5'), bi('7')).toString()).toBe('5'); // 243 % 7 = 5
     expect(bi('3').modPowInt(5, bi('7')).toString()).toBe('5');
+  });
+
+  it('modPow matches native BigInt for a 256-bit exponent', () => {
+    const base = 2n ** 255n + 19n;
+    const exp = 2n ** 256n - 159n;
+    const mod = 2n ** 255n - 19n;
+    const got = bi(base.toString()).modPow(
+      bi(exp.toString()),
+      bi(mod.toString())
+    );
+    let result = 1n;
+    let b = base % mod;
+    let e = exp;
+    while (e > 0n) {
+      if (e & 1n) result = (result * b) % mod;
+      e >>= 1n;
+      b = (b * b) % mod;
+    }
+    expect(got.toString()).toBe(result.toString());
   });
 
   it('modInverse', () => {

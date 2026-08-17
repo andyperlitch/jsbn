@@ -6,6 +6,12 @@ A fast, portable implementation of large-number math in pure JavaScript (Tom Wu'
 
 This is not a constant-time cryptographic library. See [Security](#security).
 
+## Demo
+
+Live demo and in-browser benchmark (jsbn vs [bn.js](https://www.npmjs.com/package/bn.js), [big-integer](https://www.npmjs.com/package/big-integer), and [bignumber.js](https://www.npmjs.com/package/bignumber.js)):
+
+**https://andyperlitch.github.io/jsbn/**
+
 ## Install
 
 ```bash

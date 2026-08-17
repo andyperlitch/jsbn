@@ -7,13 +7,41 @@
 
 // Bits per digit
 var dbits;
+var hasNativeBigInt = typeof BigInt === 'function';
 
 // (public) Constructor
 function BigInteger(a, b, c) {
-  if (a != null)
+  if (typeof a === 'bigint') {
+    this._n = a;
+    this._digitsReady = false;
+    this.s = a < 0n ? -1 : 0;
+    this.t = 0;
+    this._dec = undefined;
+    return;
+  }
+  if (a != null) {
     if ('number' == typeof a) this.fromNumber(a, b, c);
     else if (b == null && 'string' != typeof a) this.fromString(a, 256);
-    else this.fromString(a, b);
+    else if (
+      hasNativeBigInt &&
+      typeof a === 'string' &&
+      (b == null || b == 10) &&
+      /^-?\d+$/.test(a)
+    ) {
+      var n = BigInt(a);
+      this._n = n;
+      this._digitsReady = false;
+      this.s = n < 0n ? -1 : 0;
+      this.t = 0;
+      this._dec =
+        n === 0n
+          ? '0'
+          : a.charCodeAt(a.charCodeAt(0) === 45 ? 1 : 0) !== 48
+            ? a
+            : undefined;
+      return;
+    } else this.fromString(a, b);
+  }
 }
 
 // return new, unset BigInteger
@@ -27,6 +55,8 @@ function nbi() {
 //
 // am3: max digit bits 28 (avoids slow 32-bit paths in some engines).
 function am3(i, x, w, j, c, n) {
+  biNeed(this);
+  biNeed(w);
   var xl = x & 0x3fff,
     xh = x >> 14;
   while (--n >= 0) {
@@ -53,6 +83,133 @@ BigInteger.prototype.FV = Math.pow(2, BI_FP);
 BigInteger.prototype.F1 = BI_FP - dbits;
 BigInteger.prototype.F2 = 2 * dbits - BI_FP;
 
+var BI_DIGIT = hasNativeBigInt ? 0x10000000n : null;
+var BI_DIGIT_MASK = hasNativeBigInt ? 0xfffffffn : null;
+
+function biToNative(x) {
+  if (x._n !== undefined) return x._n;
+  var n = 0n;
+  for (var i = x.t - 1; i >= 0; --i) n = (n << 28n) + BigInt(x[i] | 0);
+  if (x.s < 0) n -= BI_DIGIT ** BigInt(x.t);
+  x._n = n;
+  return n;
+}
+
+function biFromNative(r, n) {
+  r._n = n;
+  r._digitsReady = false;
+  r.s = n < 0n ? -1 : 0;
+  r.t = 0;
+  r._dec = undefined;
+}
+
+function NativeInt(n) {
+  this._n = n;
+}
+NativeInt.prototype = BigInteger.prototype;
+
+function nbiFrom(n) {
+  return new NativeInt(n);
+}
+
+function biClearNative(x) {
+  x._n = undefined;
+  x._digitsReady = true;
+  x._dec = undefined;
+}
+
+function biNeed(x) {
+  if (x._n !== undefined && x._digitsReady !== true) biEnsureDigits(x);
+}
+
+function biEnsureDigits(x) {
+  if (x._n === undefined || x._digitsReady === true) return;
+  var n = x._n;
+  x._digitsReady = true;
+  if (n < 0n) {
+    biEnsureDigits.pos(x, -n);
+    var saved = x._n;
+    BigInteger.ZERO.subTo(x, x);
+    x._n = saved;
+    x._digitsReady = true;
+    return;
+  }
+  if (n === 0n) {
+    x.t = 0;
+    x.s = 0;
+    return;
+  }
+  biEnsureDigits.pos(x, n);
+}
+
+biEnsureDigits.pos = function (x, n) {
+  x.s = 0;
+  var i = 0;
+  while (n > 0n) {
+    x[i++] = Number(n & BI_DIGIT_MASK);
+    n >>= 28n;
+  }
+  x.t = i;
+};
+
+function biNativeGcd(a, b) {
+  if (a < 0n) a = -a;
+  if (b < 0n) b = -b;
+  while (b !== 0n) {
+    var t = b;
+    b = a % b;
+    a = t;
+  }
+  return a;
+}
+
+function biNativeModPow(base, exp, mod) {
+  if (mod <= 1n) return 0n;
+  if (exp === 0n) return 1n;
+  base %= mod;
+  if (base < 0n) base += mod;
+  if (exp === 1n) return base;
+  // 5-bit window for large exponents; binary for small ones.
+  if (exp < 0x10000n) {
+    var result = 1n;
+    while (exp > 0n) {
+      if (exp & 1n) result = (result * base) % mod;
+      exp >>= 1n;
+      base = (base * base) % mod;
+    }
+    return result;
+  }
+  var k = 5,
+    km = 31,
+    g = new Array(km + 1),
+    g2 = (base * base) % mod,
+    i;
+  g[1] = base;
+  for (i = 3; i <= km; i += 2) g[i] = (g[i - 2] * g2) % mod;
+  var bits = exp.toString(2),
+    n = bits.length,
+    j = 0,
+    acc = 1n;
+  while (j < n) {
+    if (bits.charCodeAt(j) === 48) {
+      acc = (acc * acc) % mod;
+      ++j;
+      continue;
+    }
+    var take = k;
+    if (j + take > n) take = n - j;
+    while (take > 1 && bits.charCodeAt(j + take - 1) === 48) --take;
+    var w = 0;
+    for (i = 0; i < take; ++i) {
+      acc = (acc * acc) % mod;
+      w = (w << 1) | (bits.charCodeAt(j + i) - 48);
+    }
+    if (w) acc = (acc * g[w]) % mod;
+    j += take;
+  }
+  return acc;
+}
+
 // Digit conversions
 var BI_RM = '0123456789abcdefghijklmnopqrstuvwxyz';
 var BI_RC = new Array();
@@ -74,15 +231,27 @@ function intAt(s, i) {
 
 // (protected) copy this to r
 function bnpCopyTo(r) {
+  if (this._n !== undefined && this._digitsReady !== true) {
+    r._n = this._n;
+    r._digitsReady = false;
+    r.s = this.s;
+    r.t = 0;
+    r._dec = this._dec;
+    return;
+  }
   for (var i = this.t - 1; i >= 0; --i) r[i] = this[i];
   r.t = this.t;
   r.s = this.s;
+  r._n = this._n;
+  r._digitsReady = true;
 }
 
 // (protected) set from integer value x, -DV <= x < DV
 function bnpFromInt(x) {
   this.t = 1;
   this.s = x < 0 ? -1 : 0;
+  this._digitsReady = true;
+  this._n = hasNativeBigInt ? BigInt(x) : undefined;
   if (x > 0) this[0] = x;
   else if (x < -1) this[0] = x + this.DV;
   else this.t = 0;
@@ -134,6 +303,8 @@ function bnpFromString(s, b) {
   }
   this.t = 0;
   this.s = 0;
+  this._n = undefined;
+  this._digitsReady = true;
   var i = s.length,
     mi = false,
     sh = 0;
@@ -162,12 +333,26 @@ function bnpFromString(s, b) {
 
 // (protected) clamp off excess high words
 function bnpClamp() {
+  biNeed(this);
   var c = this.s & this.DM;
   while (this.t > 0 && this[this.t - 1] == c) --this.t;
+  this._n = undefined;
+  this._dec = undefined;
 }
 
 // (public) return string representation in given radix
 function bnToString(b) {
+  if (hasNativeBigInt) {
+    if (b == null || b == 10) {
+      if (this._dec !== undefined) return this._dec;
+      var s = biToNative(this).toString(10);
+      this._dec = s;
+      return s;
+    }
+    b |= 0;
+    if (b >= 2 && b <= 36) return biToNative(this).toString(b);
+  }
+  biNeed(this);
   if (this.s < 0) return '-' + this.negate().toString(b);
   var k;
   if (b == 16) k = 4;
@@ -207,6 +392,7 @@ function bnToString(b) {
 
 // (public) -this
 function bnNegate() {
+  if (hasNativeBigInt) return nbiFrom(-biToNative(this));
   var r = nbi();
   BigInteger.ZERO.subTo(this, r);
   return r;
@@ -214,11 +400,16 @@ function bnNegate() {
 
 // (public) |this|
 function bnAbs() {
+  if (this._n !== undefined) return this._n < 0n ? nbiFrom(-this._n) : this;
   return this.s < 0 ? this.negate() : this;
 }
 
 // (public) return + if this > a, - if this < a, 0 if equal
 function bnCompareTo(a) {
+  if (this._n !== undefined && a._n !== undefined)
+    return this._n < a._n ? -1 : this._n > a._n ? 1 : 0;
+  biNeed(this);
+  biNeed(a);
   var r = this.s - a.s;
   if (r != 0) return r;
   var i = this.t;
@@ -257,6 +448,15 @@ function nbits(x) {
 
 // (public) return the number of bits in "this"
 function bnBitLength() {
+  if (this._n !== undefined) {
+    var n = this._n;
+    if (n === 0n) return 0;
+    if (n < 0n) {
+      n = -n;
+      if ((n & (n - 1n)) === 0n) return n === 1n ? 0 : n.toString(2).length - 1;
+    }
+    return n.toString(2).length;
+  }
   if (this.t <= 0) return 0;
   return (
     this.DB * (this.t - 1) + nbits(this[this.t - 1] ^ (this.s & this.DM))
@@ -265,22 +465,27 @@ function bnBitLength() {
 
 // (protected) r = this << n*DB
 function bnpDLShiftTo(n, r) {
+  biNeed(this);
   var i;
   for (i = this.t - 1; i >= 0; --i) r[i + n] = this[i];
   for (i = n - 1; i >= 0; --i) r[i] = 0;
   r.t = this.t + n;
   r.s = this.s;
+  biClearNative(r);
 }
 
 // (protected) r = this >> n*DB
 function bnpDRShiftTo(n, r) {
+  biNeed(this);
   for (var i = n; i < this.t; ++i) r[i - n] = this[i];
   r.t = Math.max(this.t - n, 0);
   r.s = this.s;
+  biClearNative(r);
 }
 
 // (protected) r = this << n
 function bnpLShiftTo(n, r) {
+  biNeed(this);
   var bs = n % this.DB;
   var cbs = this.DB - bs;
   var bm = (1 << cbs) - 1;
@@ -300,10 +505,12 @@ function bnpLShiftTo(n, r) {
 
 // (protected) r = this >> n
 function bnpRShiftTo(n, r) {
+  biNeed(this);
   r.s = this.s;
   var ds = Math.floor(n / this.DB);
   if (ds >= this.t) {
     r.t = 0;
+    biClearNative(r);
     return;
   }
   var bs = n % this.DB;
@@ -321,6 +528,8 @@ function bnpRShiftTo(n, r) {
 
 // (protected) r = this - a
 function bnpSubTo(a, r) {
+  biNeed(this);
+  biNeed(a);
   var i = 0,
     c = 0,
     m = Math.min(a.t, this.t);
@@ -356,6 +565,8 @@ function bnpSubTo(a, r) {
 // (protected) r = this * a, r != this,a (HAC 14.12)
 // "this" should be the larger one if appropriate.
 function bnpMultiplyTo(a, r) {
+  biNeed(this);
+  biNeed(a);
   var x = this.abs(),
     y = a.abs();
   var i = x.t;
@@ -369,6 +580,7 @@ function bnpMultiplyTo(a, r) {
 
 // (protected) r = this^2, r != this (HAC 14.16)
 function bnpSquareTo(r) {
+  biNeed(this);
   var x = this.abs();
   var i = (r.t = 2 * x.t);
   while (--i >= 0) r[i] = 0;
@@ -390,6 +602,8 @@ function bnpSquareTo(r) {
 // (protected) divide this by m, quotient and remainder to q, r (HAC 14.20)
 // r != q, this != m.  q or r may be null.
 function bnpDivRemTo(m, q, r) {
+  biNeed(this);
+  biNeed(m);
   var pm = m.abs();
   if (pm.t <= 0) return;
   var pt = this.abs();
@@ -451,6 +665,16 @@ function bnpDivRemTo(m, q, r) {
 
 // (public) this mod a
 function bnMod(a) {
+  if (hasNativeBigInt) {
+    var n = this._n,
+      m = a._n;
+    if (n === undefined) n = biToNative(this);
+    if (m === undefined) m = biToNative(a);
+    var r = n % m;
+    if (m > 0n && r < 0n) r += m;
+    else if (m < 0n && r > 0n) r += m;
+    return new NativeInt(r);
+  }
   var r = nbi();
   this.abs().divRemTo(a, null, r);
   if (this.s < 0 && r.compareTo(BigInteger.ZERO) > 0) a.subTo(r, r);
@@ -497,6 +721,7 @@ Classic.prototype.sqrTo = cSqrTo;
 // should reduce x and y(2-xy) by m^2 at each step to keep size bounded.
 // JS multiply "overflows" differently from C/C++, so care is needed here.
 function bnpInvDigit() {
+  biNeed(this);
   if (this.t < 1) return 0;
   var x = this[0];
   if ((x & 1) == 0) return 0;
@@ -540,6 +765,7 @@ function montRevert(x) {
 
 // x = x/R mod m (HAC 14.32)
 function montReduce(x) {
+  biNeed(x);
   while (
     x.t <= this.mt2 // pad x so am has enough room later
   )
@@ -585,6 +811,8 @@ Montgomery.prototype.sqrTo = montSqrTo;
 
 // (protected) true iff this is even
 function bnpIsEven() {
+  if (this._n !== undefined) return (this._n & 1n) === 0n;
+  biNeed(this);
   return (this.t > 0 ? this[0] & 1 : this.s) == 0;
 }
 
@@ -610,6 +838,8 @@ function bnpExp(e, z) {
 
 // (public) this^e % m, 0 <= e < 2^32
 function bnModPowInt(e, m) {
+  if (hasNativeBigInt)
+    return nbiFrom(biNativeModPow(biToNative(this), BigInt(e), biToNative(m)));
   var z;
   if (e < 256 || m.isEven()) z = new Classic(m);
   else z = new Montgomery(m);
@@ -664,6 +894,7 @@ function bnClone() {
 
 // (public) return value as integer
 function bnIntValue() {
+  biNeed(this);
   if (this.s < 0) {
     if (this.t == 1) return this[0] - this.DV;
     else if (this.t == 0) return -1;
@@ -675,11 +906,13 @@ function bnIntValue() {
 
 // (public) return value as byte
 function bnByteValue() {
+  biNeed(this);
   return this.t == 0 ? this.s : (this[0] << 24) >> 24;
 }
 
 // (public) return value as short (assumes DB>=16)
 function bnShortValue() {
+  biNeed(this);
   return this.t == 0 ? this.s : (this[0] << 16) >> 16;
 }
 
@@ -690,6 +923,8 @@ function bnpChunkSize(r) {
 
 // (public) 0 if this == 0, 1 if this > 0
 function bnSigNum() {
+  if (this._n !== undefined) return this._n < 0n ? -1 : this._n > 0n ? 1 : 0;
+  biNeed(this);
   if (this.s < 0) return -1;
   else if (this.t <= 0 || (this.t == 1 && this[0] <= 0)) return 0;
   else return 1;
@@ -715,8 +950,47 @@ function bnpToRadix(b) {
 
 // (protected) convert from radix string
 function bnpFromRadix(s, b) {
-  this.fromInt(0);
   if (b == null) b = 10;
+  if (hasNativeBigInt && b == 10) {
+    var start = 0,
+      i,
+      c,
+      ok = s.length > 0;
+    if (ok && s.charCodeAt(0) === 45) {
+      if (s.length === 1) ok = false;
+      else start = 1;
+    }
+    if (ok) {
+      for (i = start; i < s.length; ++i) {
+        c = s.charCodeAt(i);
+        if (c < 48 || c > 57) {
+          ok = false;
+          break;
+        }
+      }
+    }
+    if (ok) {
+      biFromNative(this, BigInt(s));
+      return;
+    }
+    var out = '',
+      mi = false;
+    for (i = 0; i < s.length; ++i) {
+      var x = intAt(s, i);
+      if (x < 0) {
+        if (s.charAt(i) == '-' && out.length == 0) mi = true;
+        continue;
+      }
+      out += s.charAt(i);
+    }
+    if (out.length == 0) {
+      this.fromInt(0);
+      return;
+    }
+    biFromNative(this, BigInt(mi ? '-' + out : out));
+    return;
+  }
+  this.fromInt(0);
   var cs = this.chunkSize(b);
   var d = Math.pow(b, cs),
     mi = false,
@@ -774,6 +1048,7 @@ function bnpFromNumber(a, b, c) {
 
 // (public) convert to bigendian byte array
 function bnToByteArray() {
+  biNeed(this);
   var i = this.t,
     r = new Array();
   r[0] = this.s;
@@ -814,6 +1089,8 @@ function bnMax(a) {
 
 // (protected) r = this op a (bitwise)
 function bnpBitwiseTo(a, op, r) {
+  biNeed(this);
+  biNeed(a);
   var i,
     f,
     m = Math.min(a.t, this.t);
@@ -836,6 +1113,7 @@ function op_and(x, y) {
   return x & y;
 }
 function bnAnd(a) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) & biToNative(a));
   var r = nbi();
   this.bitwiseTo(a, op_and, r);
   return r;
@@ -846,6 +1124,7 @@ function op_or(x, y) {
   return x | y;
 }
 function bnOr(a) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) | biToNative(a));
   var r = nbi();
   this.bitwiseTo(a, op_or, r);
   return r;
@@ -856,6 +1135,7 @@ function op_xor(x, y) {
   return x ^ y;
 }
 function bnXor(a) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) ^ biToNative(a));
   var r = nbi();
   this.bitwiseTo(a, op_xor, r);
   return r;
@@ -866,6 +1146,7 @@ function op_andnot(x, y) {
   return x & ~y;
 }
 function bnAndNot(a) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) & ~biToNative(a));
   var r = nbi();
   this.bitwiseTo(a, op_andnot, r);
   return r;
@@ -873,15 +1154,24 @@ function bnAndNot(a) {
 
 // (public) ~this
 function bnNot() {
+  if (hasNativeBigInt) return nbiFrom(~biToNative(this));
+  biNeed(this);
   var r = nbi();
   for (var i = 0; i < this.t; ++i) r[i] = this.DM & ~this[i];
   r.t = this.t;
   r.s = ~this.s;
+  biClearNative(r);
   return r;
 }
 
 // (public) this << n
 function bnShiftLeft(n) {
+  if (hasNativeBigInt) {
+    n |= 0;
+    return nbiFrom(
+      n < 0 ? biToNative(this) >> BigInt(-n) : biToNative(this) << BigInt(n),
+    );
+  }
   var r = nbi();
   if (n < 0) this.rShiftTo(-n, r);
   else this.lShiftTo(n, r);
@@ -890,6 +1180,12 @@ function bnShiftLeft(n) {
 
 // (public) this >> n
 function bnShiftRight(n) {
+  if (hasNativeBigInt) {
+    n |= 0;
+    return nbiFrom(
+      n < 0 ? biToNative(this) << BigInt(-n) : biToNative(this) >> BigInt(n),
+    );
+  }
   var r = nbi();
   if (n < 0) this.lShiftTo(-n, r);
   else this.rShiftTo(n, r);
@@ -922,6 +1218,13 @@ function lbit(x) {
 
 // (public) returns index of lowest 1-bit (or -1 if none)
 function bnGetLowestSetBit() {
+  if (this._n !== undefined) {
+    var v = this._n;
+    if (v === 0n) return -1;
+    var bit = v & -v;
+    return bit.toString(2).length - 1;
+  }
+  biNeed(this);
   for (var i = 0; i < this.t; ++i)
     if (this[i] != 0) return i * this.DB + lbit(this[i]);
   if (this.s < 0) return this.t * this.DB;
@@ -940,6 +1243,16 @@ function cbit(x) {
 
 // (public) return number of set bits
 function bnBitCount() {
+  if (this._n !== undefined) {
+    var n = this._n < 0n ? ~this._n : this._n,
+      r = 0;
+    while (n > 0n) {
+      n &= n - 1n;
+      ++r;
+    }
+    return r;
+  }
+  biNeed(this);
   var r = 0,
     x = this.s & this.DM;
   for (var i = 0; i < this.t; ++i) r += cbit(this[i] ^ x);
@@ -948,6 +1261,8 @@ function bnBitCount() {
 
 // (public) true iff nth bit is set
 function bnTestBit(n) {
+  if (this._n !== undefined) return ((this._n >> BigInt(n | 0)) & 1n) !== 0n;
+  biNeed(this);
   var j = Math.floor(n / this.DB);
   if (j >= this.t) return this.s != 0;
   return (this[j] & (1 << n % this.DB)) != 0;
@@ -962,21 +1277,27 @@ function bnpChangeBit(n, op) {
 
 // (public) this | (1<<n)
 function bnSetBit(n) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) | (1n << BigInt(n | 0)));
   return this.changeBit(n, op_or);
 }
 
 // (public) this & ~(1<<n)
 function bnClearBit(n) {
+  if (hasNativeBigInt)
+    return nbiFrom(biToNative(this) & ~(1n << BigInt(n | 0)));
   return this.changeBit(n, op_andnot);
 }
 
 // (public) this ^ (1<<n)
 function bnFlipBit(n) {
+  if (hasNativeBigInt) return nbiFrom(biToNative(this) ^ (1n << BigInt(n | 0)));
   return this.changeBit(n, op_xor);
 }
 
 // (protected) r = this + a
 function bnpAddTo(a, r) {
+  biNeed(this);
+  biNeed(a);
   var i = 0,
     c = 0,
     m = Math.min(a.t, this.t);
@@ -1011,6 +1332,10 @@ function bnpAddTo(a, r) {
 
 // (public) this + a
 function bnAdd(a) {
+  var x = this._n,
+    y = a._n;
+  if (x !== undefined && y !== undefined) return new NativeInt(x + y);
+  if (hasNativeBigInt) return new BigInteger(biToNative(this) + biToNative(a));
   var r = nbi();
   this.addTo(a, r);
   return r;
@@ -1018,6 +1343,10 @@ function bnAdd(a) {
 
 // (public) this - a
 function bnSubtract(a) {
+  var x = this._n,
+    y = a._n;
+  if (x !== undefined && y !== undefined) return new NativeInt(x - y);
+  if (hasNativeBigInt) return new BigInteger(biToNative(this) - biToNative(a));
   var r = nbi();
   this.subTo(a, r);
   return r;
@@ -1025,6 +1354,10 @@ function bnSubtract(a) {
 
 // (public) this * a
 function bnMultiply(a) {
+  var x = this._n,
+    y = a._n;
+  if (x !== undefined && y !== undefined) return new NativeInt(x * y);
+  if (hasNativeBigInt) return new BigInteger(biToNative(this) * biToNative(a));
   var r = nbi();
   this.multiplyTo(a, r);
   return r;
@@ -1032,6 +1365,10 @@ function bnMultiply(a) {
 
 // (public) this^2
 function bnSquare() {
+  if (hasNativeBigInt) {
+    var n = biToNative(this);
+    return nbiFrom(n * n);
+  }
   var r = nbi();
   this.squareTo(r);
   return r;
@@ -1039,6 +1376,10 @@ function bnSquare() {
 
 // (public) this / a
 function bnDivide(a) {
+  var x = this._n,
+    y = a._n;
+  if (x !== undefined && y !== undefined) return new NativeInt(x / y);
+  if (hasNativeBigInt) return new BigInteger(biToNative(this) / biToNative(a));
   var r = nbi();
   this.divRemTo(a, r, null);
   return r;
@@ -1046,6 +1387,10 @@ function bnDivide(a) {
 
 // (public) this % a
 function bnRemainder(a) {
+  var x = this._n,
+    y = a._n;
+  if (x !== undefined && y !== undefined) return new NativeInt(x % y);
+  if (hasNativeBigInt) return new BigInteger(biToNative(this) % biToNative(a));
   var r = nbi();
   this.divRemTo(a, null, r);
   return r;
@@ -1053,6 +1398,11 @@ function bnRemainder(a) {
 
 // (public) [this/a,this%a]
 function bnDivideAndRemainder(a) {
+  if (hasNativeBigInt) {
+    var n = biToNative(this),
+      d = biToNative(a);
+    return new Array(nbiFrom(n / d), nbiFrom(n % d));
+  }
   var q = nbi(),
     r = nbi();
   this.divRemTo(a, q, r);
@@ -1061,6 +1411,7 @@ function bnDivideAndRemainder(a) {
 
 // (protected) this *= n, this >= 0, 1 < n < DV
 function bnpDMultiply(n) {
+  biNeed(this);
   this[this.t] = this.am(0, n - 1, this, 0, 0, this.t);
   ++this.t;
   this.clamp();
@@ -1069,6 +1420,7 @@ function bnpDMultiply(n) {
 // (protected) this += n << w words, this >= 0
 function bnpDAddOffset(n, w) {
   if (n == 0) return;
+  biNeed(this);
   while (this.t <= w) this[this.t++] = 0;
   this[w] += n;
   while (this[w] >= this.DV) {
@@ -1076,6 +1428,7 @@ function bnpDAddOffset(n, w) {
     if (++w >= this.t) this[this.t++] = 0;
     ++this[w];
   }
+  this._n = undefined;
 }
 
 // A "null" reducer
@@ -1097,12 +1450,16 @@ NullExp.prototype.sqrTo = nSqrTo;
 
 // (public) this^e
 function bnPow(e) {
+  if (hasNativeBigInt && e === (e | 0) && e >= 0)
+    return nbiFrom(biToNative(this) ** BigInt(e));
   return this.exp(e, new NullExp());
 }
 
 // (protected) r = lower n words of "this * a", a.t <= n
 // "this" should be the larger one if appropriate.
 function bnpMultiplyLowerTo(a, n, r) {
+  biNeed(this);
+  biNeed(a);
   var i = Math.min(this.t + a.t, n);
   r.s = 0; // assumes a,this >= 0
   r.t = i;
@@ -1117,6 +1474,8 @@ function bnpMultiplyLowerTo(a, n, r) {
 // (protected) r = "this * a" without lower n words, n > 0
 // "this" should be the larger one if appropriate.
 function bnpMultiplyUpperTo(a, n, r) {
+  biNeed(this);
+  biNeed(a);
   --n;
   var i = (r.t = this.t + a.t - n);
   r.s = 0; // assumes a,this >= 0
@@ -1186,6 +1545,10 @@ Barrett.prototype.sqrTo = barrettSqrTo;
 
 // (public) this^e % m (HAC 14.85)
 function bnModPow(e, m) {
+  if (hasNativeBigInt)
+    return nbiFrom(
+      biNativeModPow(biToNative(this), biToNative(e), biToNative(m)),
+    );
   var i = e.bitLength(),
     k,
     r = nbv(1),
@@ -1273,6 +1636,8 @@ function bnModPow(e, m) {
 
 // (public) gcd(this,a) (HAC 14.54)
 function bnGCD(a) {
+  if (hasNativeBigInt)
+    return nbiFrom(biNativeGcd(biToNative(this), biToNative(a)));
   var x = this.s < 0 ? this.negate() : this.clone();
   var y = a.s < 0 ? a.negate() : a.clone();
   if (x.compareTo(y) < 0) {
@@ -1305,6 +1670,7 @@ function bnGCD(a) {
 
 // (protected) this % n, n < 2^26
 function bnpModInt(n) {
+  biNeed(this);
   if (n <= 0) return 0;
   var d = this.DV % n,
     r = this.s < 0 ? n - 1 : 0;
@@ -1316,6 +1682,31 @@ function bnpModInt(n) {
 
 // (public) 1/this % m (HAC 14.61)
 function bnModInverse(m) {
+  if (hasNativeBigInt) {
+    var a = biToNative(this),
+      mod = biToNative(m);
+    if (mod < 0n) mod = -mod;
+    a %= mod;
+    if (a < 0n) a += mod;
+    if (a === 0n || mod === 0n || ((a & 1n) === 0n && (mod & 1n) === 0n))
+      return BigInteger.ZERO;
+    var t = 0n,
+      newT = 1n,
+      r = mod,
+      newR = a;
+    while (newR !== 0n) {
+      var q = r / newR,
+        tmp = newT;
+      newT = t - q * newT;
+      t = tmp;
+      tmp = newR;
+      newR = r - q * newR;
+      r = tmp;
+    }
+    if (r > 1n) return BigInteger.ZERO;
+    if (t < 0n) t += mod;
+    return nbiFrom(t);
+  }
   // Reduce into 0..m-1 first. Negative inputs previously infinite-looped.
   if (this.s < 0 || this.compareTo(m) >= 0) {
     return this.mod(m).modInverse(m);
@@ -1545,6 +1936,7 @@ var lplim = (1 << 26) / lowprimes[lowprimes.length - 1];
 function bnIsProbablePrime(t) {
   var i,
     x = this.abs();
+  biNeed(x);
   if (x.t == 1 && x[0] <= lowprimes[lowprimes.length - 1]) {
     for (i = 0; i < lowprimes.length; ++i)
       if (x[0] == lowprimes[i]) return true;
