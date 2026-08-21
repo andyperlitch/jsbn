@@ -125,12 +125,122 @@
               <option value="8000">8000</option>
             </select>
           </label>
-          <button type="submit" id="bench-run">Run full suite</button>
+          <div class="split-run">
+            <button type="submit" id="bench-run">Run full suite</button>
+            <button
+              type="button"
+              id="bench-libs-toggle"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="bench-libs-menu"
+              aria-label="Choose libraries"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                <path
+                  d="M2.5 4.5 L6 8 L9.5 4.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="square"
+                />
+              </svg>
+            </button>
+            <div
+              id="bench-libs-menu"
+              class="libs-popover"
+              hidden
+              role="group"
+              aria-label="Libraries to benchmark"
+            ></div>
+          </div>
         </form>
         <p id="bench-status" class="bench-status" aria-live="polite">
           Idle. Press run to start.
         </p>
         <div id="bench-table-wrap"></div>
+
+        <section class="analysis" id="bench-analysis" aria-labelledby="analysis-title">
+          <p class="result-label">Recorded Node 22 run</p>
+          <h2 id="analysis-title">jsbn does not lose the heavier run</h2>
+          <p class="bench-copy">
+            Same adapters as the live suite above, recorded in Node 22 / V8.
+            2048-bit operands × 8000 iterations. Divide and mod use a
+            double-width dividend; modPow uses a 256-bit exponent against a
+            full-width odd modulus (800 rounds). These times are not the
+            in-browser result — run the button if you want this tab’s clock.
+          </p>
+          <aside class="callout">
+            <p class="callout-title">The 800-iteration sweep is still mostly noise</p>
+            <p>
+              At 256-bit / 50–800 iterations several cells were 0.0&nbsp;ms,
+              divide of equal-sized operands is a 0/1 quotient, and modPow with
+              exponent 65537 is only ~17 squares. Under a workload that actually
+              moves the timer, public jsbn ops ride engine
+              <code>BigInt</code> and sit with <code>big-integer</code>, while
+              bn.js and bignumber.js remain JS limb / decimal implementations.
+            </p>
+          </aside>
+          <div class="analysis-stats">
+            <div>
+              <p class="analysis-stat">7 / 8</p>
+              <p>Fastest in the row</p>
+            </div>
+            <div>
+              <p class="analysis-stat">8 / 8</p>
+              <p>Wins vs bn.js</p>
+            </div>
+            <div>
+              <p class="analysis-stat">1.02×</p>
+              <p>add vs big-integer (only loss)</p>
+            </div>
+          </div>
+          <h3>2048-bit × 8000 — mid-cost ops</h3>
+          <p class="analysis-caption">
+            Wall time in milliseconds. Each cluster is scaled to the slowest
+            bar in that cluster. bignumber.js omitted so the jsbn /
+            big-integer / bn.js gap is readable; it is 20–50× slower on
+            multiply, divide, and mod. Source: Node 22, 17 Aug 2026.
+          </p>
+          <div
+            id="chart-mid"
+            role="img"
+            aria-label="Bar chart of parse, multiply, divide, and mod times for jsbn, bn.js, and big-integer"
+          ></div>
+          <h3>2048-bit × 8000 — heavy ops</h3>
+          <p class="analysis-caption">
+            Each cluster is scaled to the slowest bar in that cluster.
+            gcd is 8000 iterations; modPow is 800 rounds of 2048-bit base/modulus with a
+            256-bit exponent. toString of the 4096-bit dividend is in the table
+            — bn.js at 8.5&nbsp;s would flatten the chart. Source: Node 22,
+            17 Aug 2026.
+          </p>
+          <div
+            id="chart-heavy"
+            role="img"
+            aria-label="Bar chart of gcd and modPow times for jsbn, bn.js, and big-integer"
+          ></div>
+          <h3>2048-bit × 8000 results</h3>
+          <p class="analysis-caption">
+            Bold green is fastest in the row. Last column is jsbn / fastest.
+            Times in ms. bignumber.js gcd was not run (a JS Euclidean loop on
+            Decimal objects; tens of seconds at this size).
+          </p>
+          <div id="analysis-table-wrap" class="analysis-table-wrap"></div>
+          <h3>Why the original 800-iter ranking lied</h3>
+          <p class="bench-copy">
+            <code>big-integer</code> is a native <code>BigInt</code> wrapper in
+            this engine, so it was never a like-for-like JS big-integer
+            implementation. jsbn’s public arithmetic now uses the same engine
+            primitive and only materializes the classic 28-bit digit array when
+            something like <code>toByteArray</code> needs it — which is why add
+            and multiply land within a few percent of big-integer, while gcd and
+            modPow pull ahead (Euclid and windowed exp on raw
+            <code>BigInt</code>, versus their method-call loops). bn.js still
+            wins nothing here: it is a JS limb library. bignumber.js is a
+            general decimal library, fast-ish at toString until you cache the
+            decimal from parse, and slow at integer multiply and divide.
+          </p>
+        </section>
       </section>
     </main>
 

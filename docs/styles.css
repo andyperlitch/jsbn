@@ -52,11 +52,17 @@ footer {
   color: var(--muted);
 }
 
-h1 {
-  margin: 0.35rem 0 0.75rem;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
+h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.65rem;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
+}
+
+h3 {
+  margin: 1.75rem 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 
 .lede {
@@ -155,7 +161,8 @@ legend {
 }
 
 .ops button,
-#bench-run {
+#bench-run,
+#bench-libs-toggle {
   appearance: none;
   border: 1px solid var(--ink);
   background: var(--ink);
@@ -165,7 +172,8 @@ legend {
 }
 
 .ops button:hover,
-#bench-run:hover {
+#bench-run:hover,
+#bench-libs-toggle:hover {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -221,9 +229,77 @@ legend {
   min-width: 10rem;
 }
 
-#bench-run:disabled {
+.split-run {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+#bench-run {
+  border-right-width: 0;
+}
+
+#bench-libs-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.45rem;
+  border-left: 1px solid rgba(243, 238, 228, 0.35);
+}
+
+#bench-libs-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.split-run:hover #bench-run,
+.split-run:hover #bench-libs-toggle {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.split-run:focus-within #bench-run,
+.split-run:focus-within #bench-libs-toggle {
+  outline: none;
+}
+
+#bench-run:disabled,
+#bench-libs-toggle:disabled {
   opacity: 0.5;
   cursor: wait;
+}
+
+.libs-popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 8;
+  min-width: 12.5rem;
+  padding: 0.45rem 0.35rem;
+  background: #fffdf8;
+  border: 1px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(26, 22, 18, 0.12);
+}
+
+.libs-popover label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.libs-popover label:hover {
+  background: var(--bg-2);
+}
+
+.libs-popover input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--ink);
 }
 
 .bench-status {
@@ -234,6 +310,7 @@ legend {
 }
 
 .bench-grid {
+  --lib-count: 4;
   display: grid;
   grid-template-columns: 7.5rem 9.5rem minmax(12rem, 1fr);
   width: 100%;
@@ -251,7 +328,7 @@ legend {
 
 .bench-grid > .op {
   grid-column: 1;
-  grid-row: span 4;
+  grid-row: span var(--lib-count);
   align-self: start;
   padding: 0.55rem 0.5rem 0.4rem;
   font-weight: 600;
@@ -335,6 +412,192 @@ legend {
   color: var(--muted);
 }
 
+.analysis {
+  margin-top: 2.75rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--ink);
+}
+
+.analysis .result-label {
+  margin-bottom: 0.35rem;
+}
+
+.analysis .bench-copy {
+  margin: 0 0 1.1rem;
+}
+
+.callout {
+  max-width: 46rem;
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1rem 0.9rem 1.05rem;
+  background: var(--bg-2);
+  border-left: 3px solid var(--ink);
+}
+
+.callout-title {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.callout p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.analysis-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0 0 0.5rem;
+  max-width: 46rem;
+}
+
+.analysis-stat {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ok);
+}
+
+.analysis-stats p:last-child {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.analysis-caption {
+  max-width: 46rem;
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.vchart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.vchart-legend i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.4rem;
+  vertical-align: -0.05rem;
+}
+
+.vchart-legend .swatch-jsbn {
+  background: var(--ok);
+}
+
+.vchart-legend .swatch-bnjs {
+  background: var(--ink);
+}
+
+.vchart-legend .swatch-biginteger {
+  background: var(--accent);
+}
+
+.vchart {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  height: 14rem;
+  margin: 0 0 0.5rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.vchart-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  min-width: 0;
+  height: 100%;
+}
+
+.vchart-bars {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 0.2rem;
+  height: 100%;
+}
+
+.vbar {
+  flex: 1;
+  max-width: 1.15rem;
+  min-height: 2px;
+}
+
+.vbar-jsbn {
+  background: var(--ok);
+}
+
+.vbar-bnjs {
+  background: var(--ink);
+}
+
+.vbar-biginteger {
+  background: var(--accent);
+}
+
+.vchart-name {
+  margin-top: 0.4rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.analysis-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 0.5rem;
+}
+
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.analysis-table th,
+.analysis-table td {
+  padding: 0.45rem 0.55rem;
+  text-align: right;
+  border-bottom: 1px solid var(--bg-2);
+}
+
+.analysis-table th:first-child,
+.analysis-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.analysis-table thead th {
+  border-bottom: 1px solid var(--ink);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.analysis-table .fast {
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.analysis-table .na {
+  color: var(--muted);
+}
+
 footer {
   padding: 0 0 2rem;
   color: var(--muted);
@@ -343,7 +606,8 @@ footer {
 
 @media (max-width: 800px) {
   .demo-grid,
-  .row {
+  .row,
+  .analysis-stats {
     grid-template-columns: 1fr;
   }
 }

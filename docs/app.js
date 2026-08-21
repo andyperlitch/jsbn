@@ -261,7 +261,66 @@ function timeMs(fn) {
   return performance.now() - t0;
 }
 
+const selectedLibIds = new Set(libs.map((l) => l.id));
 const results = new Map();
+
+function activeLibs() {
+  return libs.filter((l) => selectedLibIds.has(l.id));
+}
+
+function setLibsMenuOpen(open) {
+  const toggle = $('bench-libs-toggle');
+  const menu = $('bench-libs-menu');
+  toggle.setAttribute('aria-expanded', String(open));
+  menu.hidden = !open;
+}
+
+function mountLibPicker() {
+  const menu = $('bench-libs-menu');
+  const toggle = $('bench-libs-toggle');
+  const runBtn = $('bench-run');
+  for (const lib of libs) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = true;
+    input.value = lib.id;
+    input.id = 'bench-lib-' + lib.id;
+    input.addEventListener('click', (ev) => ev.stopPropagation());
+    input.addEventListener('change', () => {
+      if (!input.checked) {
+        if (selectedLibIds.size === 1) {
+          input.checked = true;
+          return;
+        }
+        selectedLibIds.delete(lib.id);
+      } else {
+        selectedLibIds.add(lib.id);
+      }
+      renderTable();
+    });
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(lib.name));
+    menu.appendChild(label);
+  }
+  toggle.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    setLibsMenuOpen(menu.hidden);
+  });
+  document.addEventListener('click', (ev) => {
+    if (menu.hidden) return;
+    if (menu.contains(ev.target) || toggle.contains(ev.target)) return;
+    setLibsMenuOpen(false);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !menu.hidden) {
+      setLibsMenuOpen(false);
+      toggle.focus();
+    }
+  });
+  runBtn.addEventListener('click', () => setLibsMenuOpen(false));
+}
 
 function cellMetric(t, best, max, extraClass) {
   let extra = 'metric' + (extraClass ? ' ' + extraClass : '');
@@ -296,16 +355,20 @@ function cellMetric(t, best, max, extraClass) {
 
 function renderTable() {
   const wrap = $('bench-table-wrap');
+  const shown = activeLibs();
+  const count = Math.max(1, shown.length);
   let html =
-    '<div class="bench-grid"><div class="bench-h">Operation</div><div class="bench-h">Library</div><div class="bench-h">Time</div>';
+    '<div class="bench-grid" style="--lib-count:' +
+    count +
+    '"><div class="bench-h">Operation</div><div class="bench-h">Library</div><div class="bench-h">Time</div>';
   for (const op of benchOps) {
-    const times = libs.map((l) => results.get(l.id + ':' + op.id));
+    const times = shown.map((l) => results.get(l.id + ':' + op.id));
     const numeric = times.filter((t) => typeof t === 'number');
     const best = numeric.length ? Math.min(...numeric) : null;
     const max = numeric.length ? Math.max(...numeric) : null;
     html += '<div class="op">' + op.label + '</div>';
-    for (let i = 0; i < libs.length; i++) {
-      const end = i === libs.length - 1 ? 'op-end' : '';
+    for (let i = 0; i < shown.length; i++) {
+      const end = i === shown.length - 1 ? 'op-end' : '';
       const win =
         typeof times[i] === 'number' && times[i] === best ? ' fast' : '';
       html +=
@@ -313,7 +376,7 @@ function renderTable() {
         (end ? ' op-end' : '') +
         win +
         '">' +
-        libs[i].name +
+        shown[i].name +
         '</div>';
       html += cellMetric(times[i], best, max, end);
     }
@@ -324,8 +387,16 @@ function renderTable() {
 
 async function runSuite(ev) {
   ev.preventDefault();
+  setLibsMenuOpen(false);
   const runBtn = $('bench-run');
+  const toggle = $('bench-libs-toggle');
+  const shown = activeLibs();
+  if (!shown.length) return;
   runBtn.disabled = true;
+  toggle.disabled = true;
+  for (const input of $('bench-libs-menu').querySelectorAll('input')) {
+    input.disabled = true;
+  }
   results.clear();
   renderTable();
 
@@ -341,7 +412,7 @@ async function runSuite(ev) {
   const expected = oracleStrings(aStr, bStr, wideStr, mStr, eStr);
   let fails = 0;
 
-  for (const lib of libs) {
+  for (const lib of shown) {
     for (const op of benchOps) {
       $('bench-status').textContent = 'Running ' + lib.name + ' · ' + op.label;
       await yieldUi();
@@ -392,6 +463,10 @@ async function runSuite(ev) {
     iters +
     ' iterations (modPow uses 1/10th, 256-bit exponent).';
   runBtn.disabled = false;
+  toggle.disabled = false;
+  for (const input of $('bench-libs-menu').querySelectorAll('input')) {
+    input.disabled = false;
+  }
 }
 
 function mountTabs() {
@@ -410,7 +485,118 @@ function mountTabs() {
   benchBtn.addEventListener('click', () => select('bench'));
 }
 
+function mountAnalysis() {
+  const suite = {
+    parse: { jsbn: 25.2, bnjs: 186.8, biginteger: 34.2, bignumber: 40.3 },
+    add: { jsbn: 0.85, bnjs: 4.0, biginteger: 0.84, bignumber: 5.6 },
+    mul: { jsbn: 4.1, bnjs: 73.8, biginteger: 4.2, bignumber: 964.3 },
+    div: { jsbn: 18.6, bnjs: 139.7, biginteger: 18.8, bignumber: 1094.3 },
+    mod: { jsbn: 18.5, bnjs: 137.5, biginteger: 19.1, bignumber: 2091.1 },
+    gcd: { jsbn: 119.9, bnjs: 403.1, biginteger: 221.5, bignumber: null },
+    modPow: { jsbn: 733.5, bnjs: 7002.8, biginteger: 937.0, bignumber: null },
+    toString: { jsbn: 0.3, bnjs: 8466.6, biginteger: 111.5, bignumber: 11.3 },
+  };
+  const labels = {
+    parse: 'parse',
+    add: 'add',
+    mul: 'multiply',
+    div: 'divide',
+    mod: 'mod',
+    gcd: 'gcd',
+    modPow: 'modPow',
+    toString: 'toString',
+  };
+  const seriesKeys = ['jsbn', 'bnjs', 'biginteger'];
+  const seriesNames = {
+    jsbn: 'jsbn',
+    bnjs: 'bn.js',
+    biginteger: 'big-integer',
+  };
+
+  function fmtMs(n) {
+    if (n == null) return 'n/a';
+    if (n < 10) return n.toFixed(2).replace(/0$/, '');
+    return n.toFixed(1);
+  }
+
+  function renderChart(root, cats) {
+    if (!root) return;
+    let html = '<ul class="vchart-legend">';
+    for (const k of seriesKeys) {
+      html +=
+        '<li><i class="swatch-' + k + '"></i>' + seriesNames[k] + '</li>';
+    }
+    html +=
+      '</ul><div class="vchart" style="--cols:' + cats.length + '">';
+    for (const cat of cats) {
+      let max = 0;
+      for (const k of seriesKeys) max = Math.max(max, suite[cat][k] || 0);
+      html += '<div class="vchart-col"><div class="vchart-bars">';
+      for (const k of seriesKeys) {
+        const n = suite[cat][k];
+        const h = max ? ((n || 0) / max) * 100 : 0;
+        html +=
+          '<div class="vbar vbar-' +
+          k +
+          '" style="height:' +
+          Math.max(h, n ? 1.2 : 0).toFixed(1) +
+          '%" title="' +
+          seriesNames[k] +
+          ' ' +
+          fmtMs(n) +
+          ' ms"></div>';
+      }
+      html +=
+        '</div><div class="vchart-name">' + labels[cat] + '</div></div>';
+    }
+    html += '</div>';
+    root.innerHTML = html;
+  }
+
+  function renderTable() {
+    const wrap = $('analysis-table-wrap');
+    if (!wrap) return;
+    const ops = Object.keys(labels);
+    const cols = [
+      'jsbn',
+      'bnjs',
+      'biginteger',
+      'bignumber',
+    ];
+    const names = ['jsbn', 'bn.js', 'big-integer', 'bignumber.js'];
+    let html =
+      '<table class="analysis-table"><thead><tr><th>Operation</th>';
+    for (const n of names) html += '<th>' + n + '</th>';
+    html += '<th>jsbn vs best</th></tr></thead><tbody>';
+    for (const op of ops) {
+      const row = suite[op];
+      const nums = cols.map((k) => row[k]).filter((v) => typeof v === 'number');
+      const best = nums.length ? Math.min(...nums) : null;
+      html += '<tr><td>' + labels[op] + '</td>';
+      for (const k of cols) {
+        const n = row[k];
+        if (n == null) html += '<td class="na">n/a</td>';
+        else if (n === best)
+          html += '<td class="fast">' + fmtMs(n) + '</td>';
+        else html += '<td>' + fmtMs(n) + '</td>';
+      }
+      html +=
+        '<td>' +
+        (best == null ? '—' : (row.jsbn / best).toFixed(2) + '×') +
+        '</td></tr>';
+    }
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  renderChart($('chart-mid'), ['parse', 'mul', 'div', 'mod']);
+  renderChart($('chart-heavy'), ['gcd', 'modPow']);
+  renderTable();
+}
+
 mountTabs();
 mountDemo();
+mountLibPicker();
+mountAnalysis();
 $('bench-form').addEventListener('submit', runSuite);
 renderTable();
