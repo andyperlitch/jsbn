@@ -1,28 +1,64 @@
 {
   "name": "jsbn",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "The jsbn library is a fast, portable implementation of large-number math in pure JavaScript, enabling public-key crypto and other applications on desktop and mobile browsers.",
-  "main": "index.js",
-  "scripts": {
-    "format:check": "prettier --config ./.prettierrc.js --check \"**/*.js\"",
-    "format:fix": "prettier --config ./.prettierrc.js --write \"**/*.js\"",
-    "test": "mocha test.js"
-  },
+  "license": "MIT",
+  "author": "Tom Wu",
   "repository": {
     "type": "git",
     "url": "https://github.com/andyperlitch/jsbn.git"
   },
-  "files": [],
+  "homepage": "https://github.com/andyperlitch/jsbn#readme",
+  "bugs": {
+    "url": "https://github.com/andyperlitch/jsbn/issues"
+  },
   "keywords": [
     "biginteger",
     "bignumber",
     "big",
     "integer"
   ],
-  "author": "Tom Wu",
-  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "sideEffects": false,
+  "unpkg": "./dist/jsbn.global.js",
+  "jsdelivr": "./dist/jsbn.global.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "pages:build": "npm run build && cp dist/index.js docs/jsbn.js",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "prepublishOnly": "npm run build && npm test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
-    "benchmark": "^2.1.4",
-    "prettier": "^1.19.1"
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

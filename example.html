@@ -1,11 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title></title>
-    </head>
-    <body>
-      <script src="index.js"></script>
-      <script src="example.js"></script>
-    </body>
+  <head>
+    <meta charset="utf-8" />
+    <title>jsbn example</title>
+  </head>
+  <body>
+    <script src="dist/jsbn.global.js"></script>
+    <script>
+      var BigInteger = jsbn.BigInteger;
+      var a = new BigInteger('91823918239182398123');
+      document.body.textContent = 'bitLength = ' + a.bitLength();
+    </script>
+  </body>
 </html>
